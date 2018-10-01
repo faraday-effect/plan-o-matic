@@ -1,5 +1,7 @@
 # plan-o-matic
 
+Experiments with course planning using Org Mode and Vue
+
 ## Project setup
 ```
 yarn install
