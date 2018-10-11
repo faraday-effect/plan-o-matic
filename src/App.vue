@@ -1,20 +1,16 @@
 <template>
     <div id="app">
-        <img alt="Vue logo" src="./assets/logo.png">
-        <MyCircle/>
-        <HelloWorld msg="plan-o-matic"/>
+        <Plan/>
     </div>
 </template>
 
 <script>
-    import HelloWorld from './components/HelloWorld.vue';
-    import MyCircle from './components/MyCircle.vue';
+    import Plan from './components/SemesterPlan.vue';
 
     export default {
         name: 'app',
         components: {
-            HelloWorld,
-            MyCircle
+            Plan
         }
     }
 </script>
