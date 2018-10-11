@@ -76,16 +76,20 @@ class Course {
 }
 
 class OutlineNode {
+    static nextId = 0;
+
     constructor(type, props, children) {
         this.type = type;
         this.props = props || { };
         this.children = children;
 
+        this.id = OutlineNode.nextId++;
+
         // Fix the title.
         if (this.type === 'org-data') {
             this.props.title = 'TOP LEVEL';
         } else {
-            const m = this.props.title.match(/\[\[(.*?)\]\[(.*?)\]\]/);
+            const m = this.props.title.match(/\[\[(.*?)]\[(.*?)]]/);
             this.props.title = m ? m[2] : this.props.title;
         }
     }
@@ -94,20 +98,10 @@ class OutlineNode {
         return this.props.tags && this.props.tags.includes(tag);
     }
 
-    indentedTitle() {
-        return '|  '.repeat(this.props.level || 0) + this.props.title;
-    }
-
     *traverse(node=this) {
         yield(node);
         for (let child of node.children) {
             yield* this.traverse(child);
-        }
-    }
-
-    dump() {
-        for (let node of this.traverse()) {
-            console.log(node.indentedTitle());
         }
     }
 }
@@ -134,13 +128,11 @@ class Scheduler {
                     break;
                 case 'headline':
                     if (node.hasTag('topic')) {
-                        console.log(node.indentedTitle(), `[${courseDates[classDay++].format(ddmFormat)}]`);
-                    } else {
-                        console.log(node.indentedTitle());
+                        node.scheduledDate = courseDates[classDay++].format(ddmFormat);
                     }
                     break;
                 default:
-                    console.error(`Unknown type ${node.type}`);
+                    throw new Error(`Unknown node type ${node.type}`);
             }
         }
     }
@@ -162,12 +154,6 @@ export function getTheSchedule() {
     //    cos343: new Course("COS 343", "Advanced Database Concepts", fall2018, mwf)
 
     let scheduler = new Scheduler(cos243Outline);
-
-    // console.log("================ DUMP ================");
-    scheduler.outline.dump();
-
-    // console.log("================ SCHEDULE ================");
     scheduler.schedule(cos243);
-
     return scheduler;
 }

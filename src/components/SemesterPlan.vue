@@ -1,11 +1,10 @@
 <template>
     <div>
-        <p>Hello, Circle!</p>
+        <h3>Hello, Circle!</h3>
         <div id="round-stuff"></div>
+
         <ol>
-            <li v-for="title in titles">
-                {{ title }}
-            </li>
+            <OutlineNode v-bind:node="schedule.outline"></OutlineNode>
         </ol>
     </div>
 </template>
@@ -13,17 +12,14 @@
 <script>
     import SVG from 'svg.js';
     import { getTheSchedule } from '../Scheduler';
+    import OutlineNode from "./OutlineNode";
 
     export default {
         name: "Plan",
+        components: {OutlineNode},
         data: function () {
-            let schedule = getTheSchedule();
-            let titles = [];
-            for (let node of schedule.outline.traverse()) {
-                titles.push(node.props.title);
-            }
             return {
-                titles
+                schedule: getTheSchedule(),
             };
         },
         mounted: function () {
