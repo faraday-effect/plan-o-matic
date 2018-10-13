@@ -1,6 +1,5 @@
 import moment from 'moment';
 
-const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const ddmFormat = 'ddd/DD-MMM';
 
 class Holiday {
@@ -8,6 +7,10 @@ class Holiday {
         this.name = name;
         this.start = moment(start);
         this.end = end ? moment(end) : start;
+    }
+
+    includes(m) {
+        return m.isBetween(this.start, this.end, null, '[]');
     }
 }
 
@@ -19,59 +22,90 @@ class Semester {
         this.holidays = holidays;
     }
 
-    listHolidays() {
-        let allHolidays = [];
+    isHoliday(m) {
         for (let holiday of this.holidays) {
-            let dt = holiday.start;
-            while (dt.isSameOrBefore(holiday.end)) {
-                allHolidays.push(dt.clone());
-                dt.add(1, 'day');
+            if (holiday.includes(m)) {
+                return holiday;
             }
         }
-        return allHolidays;
+        return null;
+    }
+}
+
+class CalendarDay {
+    constructor(m) {
+        this.m = m;
+    }
+
+    hasContent () {
+        throw new Error('Override in subclass!');
+    }
+}
+
+class ClassDay extends CalendarDay {
+    constructor(m) {
+        super(m);
+        this.content = [];
+    }
+
+    hasContent() {
+        return true;
+    }
+}
+
+class OffDay extends CalendarDay {
+    constructor(m, reason) {
+        super(m);
+        this.reason = reason;
+    }
+
+    hasContent() {
+        return false;
     }
 }
 
 class Course {
-    constructor(name, title, semester, days) {
+    static validDayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+    constructor(name, title, semester, daysOfWeek) {
         this.name = name;
         this.title = title;
         this.semester = semester;
-        this.days = days;
-    }
 
-    static isInDateList(m, dateList) {
-        for (let elt of dateList) {
-            if (m.isSame(elt)) {
-                return true;
-            }
+        if (!daysOfWeek.every(day => Course.isValidDayName(day))) {
+            throw new Error(`Invalid day of week in ${daysOfWeek}`);
         }
-        return false;
+        this.daysOfWeek = daysOfWeek;
+        this.calendar = this.makeCourseCalendar();
     }
 
-    static inDayOfWeekList(dow, dowList) {
-        return dowList.includes(dow);
+    static isValidDayName(dayName) {
+        return Course.validDayNames.includes(dayName);
     }
 
-    listDates() {
-        let dates = [];
+    isClassDay(dayName) {
+        return this.daysOfWeek.includes(dayName);
+    }
 
+    makeCourseCalendar() {
         let instruction_start = this.semester.start;
         let instruction_end = this.semester.end;
+        let calendar = [];
 
         let m = instruction_start.clone();
         while (m.isSameOrBefore(instruction_end)) {
-            if (Course.isInDateList(m, this.semester.listHolidays())) {
-                // console.log(`Holiday ${m.format(ddmFormat)}`);
-            } else if (!Course.inDayOfWeekList(daysOfWeek[m.day()], this.days)) {
-                // console.log(`No class ${m.format(ddmFormat)}`);
-            } else {
-                dates.push(m.clone());
+            if (this.isClassDay(Course.validDayNames[m.day()])) {
+                let maybeHoliday = this.semester.isHoliday(m);
+                if (maybeHoliday) {
+                    calendar.push(new OffDay(m.clone(), maybeHoliday.name));
+                } else {
+                    calendar.push(new ClassDay(m.clone()));
+                }
             }
-            m.add(1, 'day');
+            m.add(1, 'd');
         }
 
-        return dates;
+        return calendar;
     }
 }
 
@@ -80,7 +114,7 @@ class OutlineNode {
 
     constructor(type, props, children) {
         this.type = type;
-        this.props = props || { };
+        this.props = props || {};
         this.children = children;
 
         this.id = OutlineNode.nextId++;
@@ -98,7 +132,7 @@ class OutlineNode {
         return this.props.tags && this.props.tags.includes(tag);
     }
 
-    *traverse(node=this) {
+    * traverse(node = this) {
         yield(node);
         for (let child of node.children) {
             yield* this.traverse(child);
@@ -152,6 +186,8 @@ export function getTheSchedule() {
 
     const cos243 = new Course("COS 243", "Multi-Tier Web App Dev", fall2018, mwf);
     //    cos343: new Course("COS 343", "Advanced Database Concepts", fall2018, mwf)
+
+    // console.log(cos243);
 
     let scheduler = new Scheduler(cos243Outline);
     scheduler.schedule(cos243);
