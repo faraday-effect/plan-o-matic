@@ -2,7 +2,7 @@
     <li>
         {{ node.props.title }}
         <span v-for="tag in node.props.tags">[{{ tag }}]</span>
-        <span>{{ node.scheduledDate }}</span>
+        <span>{{ node.calendarDay ? node.calendarDay.date : '' }}</span>
         <ol>
             <outline-node v-for="child in node.children"
                           v-bind:node="child"
