@@ -142,7 +142,7 @@ class Calendar {
                 let calDayData = {
                     date: date.clone(),
                     week: this.weekOf(date),
-                    nthCourseDay: this.nextCourseDay++
+                    nthCourseDay: this.nextCourseDay++,
                 };
                 let maybeFixedDate = course.isFixedDate(date);
                 if (maybeFixedDate) {

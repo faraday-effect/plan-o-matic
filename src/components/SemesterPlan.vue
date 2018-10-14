@@ -14,9 +14,9 @@
         </h4>
         <table border="1">
             <tr>
-                <th>Week</th>
-                <th>Days</th>
-                <th>Done</th>
+                <th>W</th>
+                <th>D</th>
+                <th>%</th>
                 <th>Date</th>
                 <th>Topic</th>
                 <th>Homework Due</th>
@@ -27,7 +27,7 @@
                 v-bind:class="{ fixedDate: !day.isClassDay }">
                 <td>{{ day.week }}</td>
                 <td>
-                    {{ day.nthClassDay}}/{{ day.nthCourseDay }}
+                    D{{ day.nthClassDay}} C{{ day.nthCourseDay }} R{{ remainingClassDays(day) }}
                 </td>
                 <td>
                     {{ percentComplete(day) }}%
@@ -59,6 +59,9 @@
             percentComplete(day) {
                 let pc = day.nthClassDay / this.schedule.calendar.totalClassDays() * 100.0;
                 return pc.toFixed(0);
+            },
+            remainingClassDays(day) {
+                return this.schedule.calendar.totalClassDays() - day.nthClassDay + 1;
             }
         }
         // mounted: function () {
