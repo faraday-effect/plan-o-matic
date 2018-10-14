@@ -101,42 +101,83 @@ class Outline {
 }
 
 class CalendarDay {
-    constructor(date) {
-        this.date = date;
-        this.classDay = true;
+    constructor(details) {
+        this.date = details.date;
+        this.week = details.week;       // Week within the semester
+        this.nthCourseDay = details.nthCourseDay;       // Index of all course days
+        this.nthClassDay = details.nthClassDay;       // Index of only class days
+        this.isClassDay = details.isClassDay;   // Is this a class day (vs. a fixed ate)?
         this.topics = [];
-        this.homework = [];
+        this.assignments = [];
+        this.todos = [];
     }
 
     addTopic(topic) {
         this.topics.push(topic);
     }
 
-    addHomework(hw) {
-        this.homework.push(hw);
+    addAssignment(assignment) {
+        this.assignments.push(assignment);
+    }
+
+    addTodo(todo) {
+        this.todos.push(todo);
     }
 }
 
 class Calendar {
     constructor(course) {
+        this.days = [];
+        this.nextCourseDay = 1;
+        this.nextClassDay = 1;
+
         let semester = course.semester;
         let instruction_start = semester.start;
         let instruction_end = semester.end;
 
-        this.days = [];
         let date = instruction_start.clone();
         while (date.isSameOrBefore(instruction_end)) {
             if (course.isClassDay(date)) {
-                const calendarDay = new CalendarDay(date.clone());
+                let calDay = null;
+                let calDayData = {
+                    date: date.clone(),
+                    week: this.weekOf(date),
+                    nthCourseDay: this.nextCourseDay++
+                };
                 let maybeFixedDate = course.isFixedDate(date);
                 if (maybeFixedDate) {
-                    calendarDay.addTopic(maybeFixedDate.name);
-                    calendarDay.classDay = false;
+                    calDay = new CalendarDay({
+                        ...calDayData,
+                        isClassDay: false,
+                        nthClassDay: this.nextClassDay
+                    });
+                    calDay.addTopic(maybeFixedDate.name);
+                } else {
+                    calDay = new CalendarDay({
+                        ...calDayData,
+                        isClassDay: true,
+                        nthClassDay: this.nextClassDay++
+                    });
                 }
-                this.days.push(calendarDay);
+                this.days.push(calDay);
             }
             date.add(1, 'd');
         }
+    }
+
+    weekOf(date) {
+        if (this.days.length === 0) {
+            return 1;
+        }
+        return date.week() - this.days[0].date.week() + 1;
+    }
+
+    totalCourseDays() {
+        return this.nextCourseDay - 1;
+    }
+
+    totalClassDays() {
+        return this.nextClassDay - 1;
     }
 }
 
@@ -146,7 +187,7 @@ function clamp(value, min, max) {
 
 class ClassDayCursor {
     constructor(calendar) {
-        this.classDays = calendar.days.filter(day => day.classDay);
+        this.classDays = calendar.days.filter(day => day.isClassDay);
         this.cursor = 0;
         this.pristine = true;
         this.lastIdx = this.classDays.length - 1;
@@ -196,15 +237,15 @@ class Schedule {
                         node.calendarDay = classDay;
                         cursor.markDirty();
                     } else if (node.hasTag('before')) {
-                        cursor.offset(-2).addHomework(`Prep ${node.props.title}`);
-                        cursor.offset(-1).addHomework(`Assign ${node.props.title}`);
-                        cursor.offset(0).addHomework(`Due ${node.props.title}`);
-                        cursor.offset(1).addHomework(`Grade ${node.props.title}`);
+                        cursor.offset(-2).addTodo(`Prep ${node.props.title}`);
+                        cursor.offset(-1).addTodo(`Assign ${node.props.title}`);
+                        cursor.offset(0).addAssignment(node.props.title);
+                        cursor.offset(1).addTodo(`Grade ${node.props.title}`);
                     } else if (node.hasTag('after')) {
-                        cursor.offset(-1).addHomework(`Prep ${node.props.title}`);
-                        cursor.offset(0).addHomework(`Assign ${node.props.title}`);
-                        cursor.offset(1).addHomework(`Due ${node.props.title}`);
-                        cursor.offset(2).addHomework(`Grade ${node.props.title}`);
+                        cursor.offset(-1).addTodo(`Prep ${node.props.title}`);
+                        cursor.offset(0).addTodo(`Assign ${node.props.title}`);
+                        cursor.offset(1).addAssignment(node.props.title);
+                        cursor.offset(2).addTodo(`Grade ${node.props.title}`);
                     }
                     break;
                 default:

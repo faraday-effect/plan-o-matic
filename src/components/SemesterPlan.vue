@@ -8,18 +8,34 @@
         </ol>
 
         <h3>Calendar</h3>
+        <h4>
+            Course days {{ schedule.calendar.totalCourseDays() }},
+            Class days {{ schedule.calendar.totalClassDays() }}
+        </h4>
         <table border="1">
             <tr>
                 <th>Week</th>
+                <th>Days</th>
+                <th>Done</th>
                 <th>Date</th>
                 <th>Topic</th>
-                <th>Homework</th>
+                <th>Homework Due</th>
+                <th>To Do</th>
             </tr>
-            <tr v-for="(day, idx) of schedule.calendar.days" v-bind:key="idx">
-                <td></td>
+            <tr v-for="(day, idx) of schedule.calendar.days"
+                v-bind:key="idx"
+                v-bind:class="{ fixedDate: !day.isClassDay }">
+                <td>{{ day.week }}</td>
+                <td>
+                    {{ day.nthClassDay}}/{{ day.nthCourseDay }}
+                </td>
+                <td>
+                    {{ percentComplete(day) }}%
+                </td>
                 <td>{{ day.date | moment }}</td>
-                <td>{{ day.topics.join(', ') }}</td>
-                <td>{{ day.homework.join(', ') }}</td>
+                <td>{{ day.topics.join(',') }}</td>
+                <multi-line-table-datum v-bind:lines="day.assignments"></multi-line-table-datum>
+                <multi-line-table-datum v-bind:lines="day.todos"></multi-line-table-datum>
             </tr>
         </table>
     </div>
@@ -29,15 +45,22 @@
     import SVG from 'svg.js';
     import {getTheSchedule} from '../Schedule';
     import OutlineNode from "./OutlineNode";
+    import MultiLineTableDatum from "./MultiLineTableDatum";
 
     export default {
         name: "Plan",
-        components: {OutlineNode},
+        components: {MultiLineTableDatum, OutlineNode},
         data: function () {
             return {
                 schedule: getTheSchedule(),
             };
         },
+        methods: {
+            percentComplete(day) {
+                let pc = day.nthClassDay / this.schedule.calendar.totalClassDays() * 100.0;
+                return pc.toFixed(0);
+            }
+        }
         // mounted: function () {
         //     let draw = SVG('round-stuff').size(300, 300);
         //     draw.rect(100, 100).attr({fill: '#f00'});
@@ -55,5 +78,7 @@
 </script>
 
 <style scoped>
-
+    .fixedDate {
+        background-color: #97c4ff;
+    }
 </style>
