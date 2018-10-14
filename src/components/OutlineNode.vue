@@ -1,8 +1,9 @@
 <template>
     <li>
         {{ node.props.title }}
-        <span v-for="tag in node.props.tags">[{{ tag }}]</span>
-        <span>{{ node.calendarDay ? node.calendarDay.date : '' }}</span>
+        <span v-for="(tag, idx) in node.props.tags" v-bind:key="idx"> [{{ tag }}] </span>
+        {{ niceDate }}
+        {{ node.calendarDay }}
         <ol>
             <outline-node v-for="child in node.children"
                           v-bind:node="child"
@@ -14,7 +15,12 @@
 <script>
     export default {
         name: "OutlineNode",
-        props: ['node']
+        props: ['node'],
+        computed: {
+            niceDate: function() {
+                return this.node.calendarDay ? this.node.calendarDay.date.format('ddd/DD-MMM') : '';
+            }
+        }
     }
 </script>
 

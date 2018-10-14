@@ -63,10 +63,11 @@ class OutlineNode {
         this.props = {};
         this.children = children;
 
-        if (type == 'org-data') {
+        if (type === 'org-data') {
             this.props.title = 'TOP LEVEL';
             this.props.tags = [];
-        } else if (type == 'headline') {
+            this.props.level = -1;
+        } else if (type === 'headline') {
             let m = props.title.match(/\[\[(.*?)]\[(.*?)]]/);
             this.props.title = m ? m[2] : props.title;
             this.props.tags = props.tags;
@@ -83,7 +84,6 @@ class OutlineNode {
 
 class Outline {
     constructor(orgOutline) {
-        this.orgOutline = orgOutline;
         this.root = Outline.convertOrgOutline(orgOutline);
     }
 
@@ -92,12 +92,21 @@ class Outline {
         return new OutlineNode(type, props, children.map(child => Outline.convertOrgOutline(child)));
     }
 
+    deepestLevel() {
+        let max = -1;
+        for (let node of this.nodes()) {
+            max = Math.max(max, node.props.level);
+        }
+        return max;
+    }
+
     * nodes(node = this.root) {
         yield(node);
         for (let child of node.children) {
             yield* this.nodes(child);
         }
     }
+
 }
 
 class CalendarDay {
@@ -107,6 +116,8 @@ class CalendarDay {
         this.nthCourseDay = details.nthCourseDay;       // Index of all course days
         this.nthClassDay = details.nthClassDay;       // Index of only class days
         this.isClassDay = details.isClassDay;   // Is this a class day (vs. a fixed ate)?
+        this.nearestToToday = false;        // Is this day closest today?
+        this.firstDayOfWeek = false;        // Is this the first day of a week?
         this.topics = [];
         this.assignments = [];
         this.todos = [];
@@ -163,6 +174,9 @@ class Calendar {
             }
             date.add(1, 'd');
         }
+
+        this.setNearestToToday();
+        this.setFirstDayOfWeek();
     }
 
     weekOf(date) {
@@ -172,12 +186,38 @@ class Calendar {
         return date.week() - this.days[0].date.week() + 1;
     }
 
+    totalClassDays() {
+        return this.nextClassDay - 1;
+    }
+
     totalCourseDays() {
         return this.nextCourseDay - 1;
     }
 
-    totalClassDays() {
-        return this.nextClassDay - 1;
+    setFirstDayOfWeek() {
+        let currentWeek = -1;
+        for (let day of this.days) {
+            if (day.week !== currentWeek) {
+                currentWeek = day.week;
+                day.firstDayOfWeek = true;
+            }
+        }
+    }
+
+    setNearestToToday() {
+        let nearestDay = this.days[0];
+        let smallestDelta = Number.MAX_SAFE_INTEGER;
+
+        const now = moment();
+        for (let day of this.days) {
+            let diff = Math.abs(now.diff(day.date, 'hours'));
+            if (diff < smallestDelta) {
+                smallestDelta = diff;
+                nearestDay = day;
+            }
+        }
+
+        nearestDay.nearestToToday = true;
     }
 }
 
@@ -236,16 +276,24 @@ class Schedule {
                         classDay.addTopic(node.props.title);
                         node.calendarDay = classDay;
                         cursor.markDirty();
-                    } else if (node.hasTag('before')) {
-                        cursor.offset(-2).addTodo(`Prep ${node.props.title}`);
-                        cursor.offset(-1).addTodo(`Assign ${node.props.title}`);
-                        cursor.offset(0).addAssignment(node.props.title);
-                        cursor.offset(1).addTodo(`Grade ${node.props.title}`);
-                    } else if (node.hasTag('after')) {
-                        cursor.offset(-1).addTodo(`Prep ${node.props.title}`);
-                        cursor.offset(0).addTodo(`Assign ${node.props.title}`);
-                        cursor.offset(1).addAssignment(node.props.title);
-                        cursor.offset(2).addTodo(`Grade ${node.props.title}`);
+                    } else if (node.hasTag('hw')) {
+                        if (node.hasTag('before')) {
+                            let dueDay = cursor.current();
+                            node.calendarDay = dueDay;
+                            dueDay.addAssignment(node.props.title)
+
+                            cursor.offset(-2).addTodo(`Prep ${node.props.title}`);
+                            cursor.offset(-1).addTodo(`Assign ${node.props.title}`);
+                            cursor.offset(1).addTodo(`Grade ${node.props.title}`);
+                        } else if (node.hasTag('after')) {
+                            let dueDay = cursor.offset(1);
+                            node.calendarDay = dueDay;
+                            dueDay.addAssignment(node.props.title)
+
+                            cursor.offset(-1).addTodo(`Prep ${node.props.title}`);
+                            cursor.offset(0).addTodo(`Assign ${node.props.title}`);
+                            cursor.offset(2).addTodo(`Grade ${node.props.title}`);
+                        }
                     }
                     break;
                 default:

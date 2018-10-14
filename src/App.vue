@@ -1,6 +1,10 @@
 <template>
-    <div id="app">
-        <Plan/>
+    <div id="app" class="container">
+        <div class="columns">
+            <div class="column">
+                <Plan/>
+            </div>
+        </div>
     </div>
 </template>
 
