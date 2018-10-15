@@ -1,10 +1,11 @@
 import moment from 'moment';
 
 class FixedDate {
-    constructor(name, start, end = null) {
+    constructor(name, start, end=null, isClassDay=false) {
         this.name = name;
         this.start = moment(start);
         this.end = end ? moment(end) : start;
+        this.isClassDay = isClassDay;
     }
 
     includes(date) {
@@ -149,21 +150,34 @@ class Calendar {
         let date = instruction_start.clone();
         while (date.isSameOrBefore(instruction_end)) {
             if (course.isClassDay(date)) {
+                // Initialize generic calendar day attributes.
                 let calDay = null;
                 let calDayData = {
                     date: date.clone(),
                     week: this.weekOf(date),
                     nthCourseDay: this.nextCourseDay++,
                 };
+
                 let maybeFixedDate = course.isFixedDate(date);
                 if (maybeFixedDate) {
-                    calDay = new CalendarDay({
-                        ...calDayData,
-                        isClassDay: false,
-                        nthClassDay: this.nextClassDay
-                    });
+                    if (maybeFixedDate.isClassDay) {
+                        // Fixed date, but still a class day
+                        calDay = new CalendarDay({
+                            ...calDayData,
+                            isClassDay: true,
+                            nthClassDay: this.nextClassDay++
+                        });
+                    } else {
+                        // Fixed date that's not a class day.
+                        calDay = new CalendarDay({
+                            ...calDayData,
+                            isClassDay: false,
+                            nthClassDay: this.nextClassDay
+                        });
+                    }
                     calDay.addTopic(maybeFixedDate.name);
                 } else {
+                    // Ordinary class day.
                     calDay = new CalendarDay({
                         ...calDayData,
                         isClassDay: true,
@@ -316,8 +330,7 @@ export function getTheSchedule() {
             new FixedDate("Labor Day", "2018-09-03"),
             new FixedDate("Senior/Freshmen Retreat", "2018-10-05"),
             new FixedDate("Fall Break", "2018-10-19", "2018-10-22"),
-            new FixedDate("Thanksgiving", "2018-11-21", "2018-11-25"),
-            new FixedDate("Exam 1", "2018-10-15")
+            new FixedDate("Thanksgiving", "2018-11-21", "2018-11-25")
         ]
     });
 
@@ -329,7 +342,10 @@ export function getTheSchedule() {
         semester: fall2018,
         daysOfWeek: mwf,
         fixedDates: [
-            new FixedDate("Speak in COS 104", "2018-09-24")
+            new FixedDate("Speak in COS 104", "2018-09-24"),
+            new FixedDate("Exam 1", "2018-10-15"),
+            new FixedDate("Exam 2", "2018-11-19"),
+            new FixedDate("Show & Tell", "2018-12-07", null, true)
         ]
     });
 
