@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "bulma": "^0.7.2",
-    "moment": "^2.22.2",
+    "moment": "^2.29.4",
     "svg.js": "^2.6.6",
     "vue": "^2.5.17"
   },
